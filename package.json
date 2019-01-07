@@ -1,0 +1,40 @@
+{
+  "name": "armvalidationcli",
+  "version": "0.1.0",
+  "description": "A validation CLI for Azure Resource Manager (ARM) templates",
+  "main": "index.js",
+  "scripts": {
+    "build": "mkdir -p ./out && cp -r ./vscode-azurearmtools/assets ./out && tsc -p ./",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "tslint --project tsconfig.json -t verbose",
+    "lint-fix": "tslint --project tsconfig.json -t verbose --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lawrencegripper/armvalidationcli.git"
+  },
+  "author": "lawrencegripper",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lawrencegripper/armvalidationcli/issues"
+  },
+  "homepage": "https://github.com/lawrencegripper/armvalidationcli#readme",
+  "devDependencies": {
+    "@types/applicationinsights": "^0.15.33",
+    "@types/node": "^10.12.18",
+    "typescript": "^3.2.2",
+    "tslint": "^5.7.0",
+    "tslint-microsoft-contrib": "5.0.3"
+  },
+  "dependencies": {
+    "ajv": "^6.6.2",
+    "applicationinsights": "0.21.0",
+    "jsonschema": "^1.2.4",
+    "moment": "^2.17.1",
+    "open": "^0.0.5",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2",
+    "vscode-azureextensionui": "~0.12.0",
+    "vscode-extension-telemetry": "^0.0.15"
+  }
+}
