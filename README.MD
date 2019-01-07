@@ -1,4 +1,12 @@
+# ARM Validation CLI
 
+## About
+
+The aim is create a simple CLI which can be run doing CI to validate ARM templates and catch issues early. 
+
+## Status
+
+pre-Alpha 
 
 ## Dev 
 
