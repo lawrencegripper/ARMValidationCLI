@@ -2,10 +2,11 @@ import { DeploymentTemplate } from "./vscode-azurearmtools/src/DeploymentTemplat
 import { readFileSync, writeFileSync } from "fs";
 import * as http from "http";
 import { getLanguageService, JSONDocument } from "vscode-json-languageservice"
-import { TextDocument, Location, Position } from 'vscode-languageserver-types';
+import { TextDocument, Location, Position, DocumentSymbol } from 'vscode-languageserver-types';
 import { xhr, XHRResponse, configure as configureHttpRequests, getErrorStatusDescription } from 'request-light';
 import * as glob from "glob";
 import { exit } from "process";
+import { start } from "repl";
 
 // Added to prevent AppInsights code in vscode-azurearmtools creating build errors
 declare module "http" {
@@ -23,6 +24,30 @@ const schemaRequestService = (uri: string): Thenable<string> => {
     });
 };
 
+function symbolContainsLine(s: DocumentSymbol, line: number) {
+    return s.range.start.line <= line && s.range.end.line >= line
+}
+
+function buildSymbolPathForLine(line: number, path: string, symbol: DocumentSymbol): string {
+
+    // Build up json path
+    path = path + "." + symbol.name
+
+    // If this symbol doesn't have children and the line is in it then BINGO!
+    if (symbol.children == null || symbol.children.length == 0) {
+        return path.substr(2)
+    }
+
+    // If not lets look at its children
+    for (let s of symbol.children) {
+        if (symbolContainsLine(s, line)) {
+            return buildSymbolPathForLine(line, path, s)
+        }
+    }
+
+    return path.substr(2)
+}
+
 async function getErrorsForFile(fileLocation: string): Promise<Array<Issue>> {
     var content = readFileSync(fileLocation)
 
@@ -30,7 +55,13 @@ async function getErrorsForFile(fileLocation: string): Promise<Array<Issue>> {
     var template = new DeploymentTemplate(content.toString(), fileLocation)
 
     if (!template.hasValidSchemaUri()) {
-        combinedIssues.push(new Issue("No Schema Defined, ARM template must have a $schema field set", {character: 0, line:0}, "Error", "JSONSchemaValidation", fileLocation))
+        combinedIssues.push({
+            message: "JSON Document may not be an ARM template, it's missing the '$schema' field of the value in invalid",
+            position: { character: 0, line: 0 },
+            type: "Error",
+            source: "SchemaValidation",
+            file: fileLocation
+        })
     }
 
     //Use the VSCode JSON language server to validate the schema
@@ -39,26 +70,56 @@ async function getErrorsForFile(fileLocation: string): Promise<Array<Issue>> {
     let document = toDocument(content.toString())
     let jsonDoc = await service.parseJSONDocument(document)
     let results = await service.doValidation(document, jsonDoc)
+    let symbols = service.findDocumentSymbols2(document, jsonDoc)
+    let docSymbols = new DocumentSymbol()
+    docSymbols.children = symbols
+    docSymbols.name = ""
+
+    // console.log(docSymbols)
 
     results.forEach(e => {
         let type = e.severity === 1 ? "Error" : "Warning"
-        combinedIssues.push(new Issue(e.message, Location.create(fileLocation, e.range).range.start, type, "VSCodeJSONLanguageServer", fileLocation))
+        let startPosition = Location.create(fileLocation, e.range).range.start
+        var path = buildSymbolPathForLine(startPosition.line, "", docSymbols)
+        combinedIssues.push({
+            message: e.message,
+            position: startPosition,
+            type: type,
+            source: "VSCodeJSONLanguageServer",
+            file: fileLocation,
+            jsonPath: path
+        })
+
     })
-
-
 
     // Use the VSCode ARM extension to validate the ARM template syntax
     var errors = await template.errors
 
-    errors.forEach(error => {
-        let position = document.positionAt(error.span.startIndex)
-        combinedIssues.push(new Issue(error.message, position, "Error", "ARMValidation", fileLocation))
+    errors.forEach(e => {
+        let position = document.positionAt(e.span.startIndex)
+        var path = buildSymbolPathForLine(position.line, "", docSymbols)
+        combinedIssues.push({
+            message: e.message,
+            position: position,
+            type: "Error",
+            source: "VSCodeARMValidation",
+            file: fileLocation,
+            jsonPath: path
+        })
     });
 
     var warnings = await template.warnings
-    warnings.forEach(warning => {
-        let position = document.positionAt(warning.span.startIndex)
-        combinedIssues.push(new Issue(warning.message, position, "Warning", "ARMValidation", fileLocation))
+    warnings.forEach(w => {
+        let position = document.positionAt(w.span.startIndex)
+        var path = buildSymbolPathForLine(position.line, "", docSymbols)
+        combinedIssues.push({
+            message: w.message,
+            position: position,
+            type: "Warning",
+            source: "VSCodeARMValidation",
+            file: fileLocation,
+            jsonPath: path
+        })
     })
 
     return combinedIssues
@@ -91,7 +152,7 @@ async function getFiles(globString: string): Promise<Array<string>> {
 
             resolve(files)
         })
-    })   
+    })
 }
 
 async function run() {
@@ -107,7 +168,7 @@ async function run() {
         console.log(`Found ${issues.length} issues \n`)
 
         for (let i of issues) {
-            i.print()
+            printIssue(i)
             console.log("\n")
         }
         console.log("-----------------------------")
@@ -124,15 +185,15 @@ run().catch(e => {
     exit(1)
 })
 
-class Issue {
-    /**
-     *
-     */
-    constructor(public message: string, public position: Position, public type: string, public source: string, public file: string) {
+interface Issue {
+    message: string
+    position: Position
+    type: string
+    source: string
+    file: string
+    jsonPath?: string
+}
 
-    }
-
-    print() {
-        console.log(`Error: ${this.message} \n Location: { line: ${this.position.line} char: ${this.position.character} } \n Type: ${this.type} \n From: ${this.source} \n File ${this.file}`)
-    }
+function printIssue(i: Issue) {
+    console.log(`Error: ${i.message} \n Location: { line: ${i.position.line + 1} char: ${i.position.character + 1} } \n Type: ${i.type} \n From: ${i.source} \n File: ${i.file} \n JsonPath: ${i.jsonPath}`)
 }
