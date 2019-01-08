@@ -1,13 +1,11 @@
 import { DeploymentTemplate } from "./vscode-azurearmtools/src/DeploymentTemplate"
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync } from "fs";
 import * as http from "http";
 import { getLanguageService, JSONDocument } from "vscode-json-languageservice"
 import { TextDocument, Location, Position, DocumentSymbol } from 'vscode-languageserver-types';
 import { xhr, XHRResponse, configure as configureHttpRequests, getErrorStatusDescription } from 'request-light';
 import * as glob from "glob";
 import { exit } from "process";
-import { start } from "repl";
-import * as vscode from "vscode";
 
 // Added to prevent AppInsights code in vscode-azurearmtools creating build errors
 declare module "http" {
@@ -49,7 +47,32 @@ function buildSymbolPathForLine(line: number, path: string, symbol: DocumentSymb
     return path.substr(2)
 }
 
-export async function getErrorsForFile(fileLocation: string): Promise<Array<Issue>> {
+export function loadIgnores(pathToConfig?: string): Array<IgnoreRule> {
+    try {
+        if (pathToConfig == null) {
+            pathToConfig = "./armvalidation.json"
+        }
+        var content = readFileSync(pathToConfig)
+        return JSON.parse(content.toString()).ignore
+    } catch (e) {
+        console.error("Failed to load ignore file:" + e)
+        return null
+    }
+}
+
+function shouldSkip(jsonPath: string, message: string, fileLocation: string, ignoreRules: Array<IgnoreRule>): boolean {
+    if (ignoreRules) {
+        let fileIgnores = ignoreRules[fileLocation] as Array<IgnoreRule>
+        if (fileIgnores) {
+            let ignore = fileIgnores.find(v => jsonPath == v.jsonPath && message == v.message)
+            if (ignore) {
+                return true
+            }
+        }
+    }
+}
+
+export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array<IgnoreRule>): Promise<Array<Issue>> {
     var content = readFileSync(fileLocation)
 
     let combinedIssues = new Array<Issue>()
@@ -77,12 +100,20 @@ export async function getErrorsForFile(fileLocation: string): Promise<Array<Issu
     docSymbols.children = symbols
     docSymbols.name = ""
 
+
+
     // console.log(docSymbols)
 
     results.forEach(e => {
         let type = e.severity === 1 ? "Error" : "Warning"
         let startPosition = Location.create(fileLocation, e.range).range.start
         var path = buildSymbolPathForLine(startPosition.line, "", docSymbols)
+
+        if (shouldSkip(path, e.message, fileLocation, ignoreRules)) {
+            console.log("Skipping issue due to ignoreRule")
+            return
+        }
+
         combinedIssues.push({
             message: e.message,
             position: startPosition,
@@ -100,6 +131,12 @@ export async function getErrorsForFile(fileLocation: string): Promise<Array<Issu
     errors.forEach(e => {
         let position = document.positionAt(e.span.startIndex)
         var path = buildSymbolPathForLine(position.line, "", docSymbols)
+
+        if (shouldSkip(path, e.message, fileLocation, ignoreRules)) {
+            console.log("Skipping issue due to ignoreRule")
+            return
+        }
+
         combinedIssues.push({
             message: e.message,
             position: position,
@@ -114,6 +151,10 @@ export async function getErrorsForFile(fileLocation: string): Promise<Array<Issu
     warnings.forEach(w => {
         let position = document.positionAt(w.span.startIndex)
         var path = buildSymbolPathForLine(position.line, "", docSymbols)
+        if (shouldSkip(path, w.message, fileLocation, ignoreRules)) {
+            console.log("Skipping issue due to ignoreRule")
+            return
+        }
         combinedIssues.push({
             message: w.message,
             position: position,
@@ -157,7 +198,9 @@ async function getFiles(globString: string): Promise<Array<string>> {
     })
 }
 
+
 async function run() {
+    let ignoreRules = loadIgnores()
     let files = await getFiles(process.argv[2])
 
     let allIssues = new Array<Issue>()
@@ -165,7 +208,7 @@ async function run() {
     console.log("-----------------------------")
     for (let f of files) {
         console.log(`\n --> Checking file ${f} \n`)
-        let issues = await getErrorsForFile(f)
+        let issues = await getErrorsForFile(f, ignoreRules)
         allIssues.push(...issues)
         console.log(`Found ${issues.length} issues \n`)
 
@@ -194,6 +237,11 @@ interface Issue {
     source: string
     file: string
     jsonPath?: string
+}
+
+interface IgnoreRule {
+    message: string
+    jsonPath: string
 }
 
 function printIssue(i: Issue) {
