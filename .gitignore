@@ -1,3 +1,7 @@
 node_modules
 out
 assets/
+
+# Ignore build Typescript files
+**/*.js
+**/*.js.map

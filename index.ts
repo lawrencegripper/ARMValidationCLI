@@ -7,6 +7,7 @@ import { xhr, XHRResponse, configure as configureHttpRequests, getErrorStatusDes
 import * as glob from "glob";
 import { exit } from "process";
 import { start } from "repl";
+import * as vscode from "vscode";
 
 // Added to prevent AppInsights code in vscode-azurearmtools creating build errors
 declare module "http" {
@@ -48,7 +49,7 @@ function buildSymbolPathForLine(line: number, path: string, symbol: DocumentSymb
     return path.substr(2)
 }
 
-async function getErrorsForFile(fileLocation: string): Promise<Array<Issue>> {
+export async function getErrorsForFile(fileLocation: string): Promise<Array<Issue>> {
     var content = readFileSync(fileLocation)
 
     let combinedIssues = new Array<Issue>()
@@ -62,6 +63,7 @@ async function getErrorsForFile(fileLocation: string): Promise<Array<Issue>> {
             source: "SchemaValidation",
             file: fileLocation
         })
+        return combinedIssues
     }
 
     //Use the VSCode JSON language server to validate the schema
