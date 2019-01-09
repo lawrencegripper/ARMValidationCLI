@@ -200,7 +200,12 @@ async function getFiles(globString: string): Promise<Array<string>> {
 
 async function run() {
     let ignoreRules = loadIgnores()
-    let files = await getFiles(process.argv[2])
+    let fileGlob = process.argv[2]
+    if (fileGlob === undefined) {
+        console.log("Using default glob '**/*azuredeploy*.json' as none provided")
+        fileGlob = '**/*azuredeploy*.json'
+    }
+    let files = await getFiles(fileGlob)
 
     let allIssues = new Array<Issue>()
 
