@@ -34,8 +34,17 @@ steps:
 
   # If we're on a PR Pack the artifact and store
 - script: npm pack
-  condition: eq(variables['System.PullRequest.IsFork'], 'True')
   displayName: "Package for artifact store"
+  
+- task: CopyFiles@2
+  inputs:
+    contents: armval*
+    targetFolder: $(Build.ArtifactStagingDirectory)
+    
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: $(Build.ArtifactStagingDirectory)
+    artifactName: "NPM Packages"
 
 - task: PublishPipelineArtifact@0
   condition: eq(variables['System.PullRequest.IsFork'], 'True')
