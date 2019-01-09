@@ -46,12 +46,6 @@ steps:
     pathtoPublish: $(Build.ArtifactStagingDirectory)
     artifactName: "NPM Packages"
 
-- task: PublishPipelineArtifact@0
-  condition: eq(variables['System.PullRequest.IsFork'], 'True')
-  inputs:
-    artifactName: 'armval' 
-    targetPath: ./armval-1.0.$(patch).tgz
-
   # If we're on master publish to NPM
 - task: Npm@1
   displayName: "Publish package to npm"
