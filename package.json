@@ -1,6 +1,6 @@
 {
   "name": "armval",
-  "version": "0.1.4",
+  "version": "1.0.1",
   "description": "A validation CLI for Azure Resource Manager (ARM) templates",
   "main": "index.js",
   "scripts": {
