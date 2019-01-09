@@ -1,5 +1,5 @@
 {
-  "name": "armvalidationcli",
+  "name": "armval",
   "version": "0.1.1",
   "description": "A validation CLI for Azure Resource Manager (ARM) templates",
   "main": "index.js",
@@ -10,6 +10,7 @@
     "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
+  "bin": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lawrencegripper/armvalidationcli.git"
@@ -47,5 +48,16 @@
     "vscode-extension-telemetry": "^0.0.15",
     "vscode-json-languageservice": "^3.2.1",
     "vscode-languageserver-types": "^3.14.0"
-  }
+  },
+  "bundledDependencies": [
+    "applicationinsights",
+    "glob",
+    "moment",
+    "open",
+    "request-light",
+    "vscode-azureextensionui",
+    "vscode-extension-telemetry",
+    "vscode-json-languageservice",
+    "vscode-languageserver-types"
+  ]
 }

@@ -21,6 +21,11 @@ steps:
     npm run build
   displayName: 'npm install and build'
 
+- script: |
+    npm install -g bundle-deps
+    bundle-deps .
+  displayName: 'Bundle npm dependencies into package'
+
 - task: Npm@1
   inputs:
     command: publish
