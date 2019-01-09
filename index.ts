@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { DeploymentTemplate } from "./vscode-azurearmtools/src/DeploymentTemplate"
 import { readFileSync } from "fs";
 import * as http from "http";

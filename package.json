@@ -4,13 +4,12 @@
   "description": "A validation CLI for Azure Resource Manager (ARM) templates",
   "main": "index.js",
   "scripts": {
-    "build": "cp -r ./vscode-azurearmtools/assets ./ && tsc -p ./",
+    "build": "node ./node_modules/vscode/bin/install && cp -r ./vscode-azurearmtools/assets ./ && tsc -p ./",
     "test": "tsc -p ./ && mocha --require ts-node/register test/**/*.ts",
     "lint": "tslint --project tsconfig.json -t verbose",
-    "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "lint-fix": "tslint --project tsconfig.json -t verbose --fix"
   },
-  "bin": "index.js",
+  "bin": "./index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lawrencegripper/armvalidationcli.git"

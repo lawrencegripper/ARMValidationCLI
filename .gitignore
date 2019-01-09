@@ -5,3 +5,4 @@ assets/
 # Ignore build Typescript files
 **/*.js
 **/*.js.map
+*.tgz
