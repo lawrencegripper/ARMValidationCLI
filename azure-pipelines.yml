@@ -20,13 +20,13 @@ steps:
 - script: npm install
   displayName: 'npm install'
 
-
 - script: npm run build
   displayName: 'npm run build'
 
 - script: npm test
   displayName: 'npm test'
 
+  # Bundle deps to improve install performance
 - script: |
     npm install -g bundle-deps
     bundle-deps .
@@ -34,18 +34,20 @@ steps:
 
   # If we're on a PR Pack the artifact and store
 - script: npm pack
-  condition: eq(variables['System.PullRequest.IsFork'], 'True')
   displayName: "Package for artifact store"
-
-- task: PublishPipelineArtifact@0
-  condition: eq(variables['System.PullRequest.IsFork'], 'True')
+  
+- task: CopyFiles@2
   inputs:
-    artifactName: 'armvis' 
-    targetPath: ./armvis-1.0.$(patch)-prbuild
+    contents: armval*
+    targetFolder: $(Build.ArtifactStagingDirectory)
+    
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: $(Build.ArtifactStagingDirectory)
+    artifactName: "NPM Packages"
 
   # If we're on master publish to NPM
 - task: Npm@1
-  condition: and(succeeded(), eq(variables['System.PullRequest.IsFork'], 'False'), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   displayName: "Publish package to npm"
   inputs:
     command: publish
