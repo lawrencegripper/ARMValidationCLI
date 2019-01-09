@@ -1,7 +1,6 @@
 node_modules
 out
 assets/
-vscode-azurearmtools
 
 # Ignore build Typescript files
 **/*.js
