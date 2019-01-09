@@ -202,7 +202,7 @@ async function run() {
     let ignoreRules = loadIgnores()
     let fileGlob = process.argv[2]
     if (fileGlob === undefined) {
-        console.log("Using default glob '**/*azuredeploy*.json' as none provided")
+        console.log("Using default glob '**/azuredeploy.json' as none provided")
         fileGlob = '**/*azuredeploy*.json'
     }
     let files = await getFiles(fileGlob)
@@ -223,7 +223,7 @@ async function run() {
         }
         console.log("-----------------------------")
     }
-    
+
     console.log(`Summary: Found ${allIssues.length} issues in ${files.length} files.`)
 
     if (allIssues.length > 0) {
