@@ -72,6 +72,8 @@ function shouldSkip(jsonPath: string, message: string, fileLocation: string, ign
     }
 }
 
+let service = getLanguageService({ schemaRequestService: schemaRequestService })
+
 export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array<IgnoreRule>): Promise<Array<Issue>> {
     var content = readFileSync(fileLocation)
 
@@ -91,7 +93,6 @@ export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array
 
     //Use the VSCode JSON language server to validate the schema
 
-    let service = getLanguageService({ schemaRequestService: schemaRequestService })
     let document = toDocument(content.toString())
     let jsonDoc = await service.parseJSONDocument(document)
     let results = await service.doValidation(document, jsonDoc)

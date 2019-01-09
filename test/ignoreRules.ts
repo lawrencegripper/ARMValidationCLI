@@ -27,6 +27,6 @@ describe('Ignore rules test', () => {
         }`)
 
         const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json", ignoreRules)
-        expect(s.length).to.equal(1);
+        expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
 });
