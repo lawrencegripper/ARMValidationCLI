@@ -20,13 +20,13 @@ steps:
 - script: npm install
   displayName: 'npm install'
 
-
 - script: npm run build
   displayName: 'npm run build'
 
 - script: npm test
   displayName: 'npm test'
 
+  # Bundle deps to improve install performance
 - script: |
     npm install -g bundle-deps
     bundle-deps .
@@ -45,7 +45,6 @@ steps:
 
   # If we're on master publish to NPM
 - task: Npm@1
-  condition: and(succeeded(), eq(variables['System.PullRequest.IsFork'], 'False'), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   displayName: "Publish package to npm"
   inputs:
     command: publish
