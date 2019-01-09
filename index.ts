@@ -100,10 +100,6 @@ export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array
     docSymbols.children = symbols
     docSymbols.name = ""
 
-
-
-    // console.log(docSymbols)
-
     results.forEach(e => {
         let type = e.severity === 1 ? "Error" : "Warning"
         let startPosition = Location.create(fileLocation, e.range).range.start
