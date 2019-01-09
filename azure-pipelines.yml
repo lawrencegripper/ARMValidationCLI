@@ -40,8 +40,8 @@ steps:
 - task: PublishPipelineArtifact@0
   condition: eq(variables['System.PullRequest.IsFork'], 'True')
   inputs:
-    artifactName: 'armvis' 
-    targetPath: ./armvis-1.0.$(patch).tgz
+    artifactName: 'armval' 
+    targetPath: ./armval-1.0.$(patch).tgz
 
   # If we're on master publish to NPM
 - task: Npm@1
