@@ -4,7 +4,7 @@
 
 ## About
 
-The aim is create a simple CLI which can be run doing CI to validate ARM templates and catch issues early. 
+The aim is to create a simple CLI which can be run during CI to validate ARM templates and catch issues early. 
 
 ## Usage 
 
@@ -18,7 +18,7 @@ To validate ARM templates `armval` in a folder structure containing `azuredeploy
 
 You can specify a custom [glob](https://en.wikipedia.org/wiki/Glob_%28programming%29) to match you file naming convention like this `armval "**/*mytemplate.json"`
 
-If you have errors which you don't want to ignore add an `armvalconfig.json` with the following structure in the directory:
+If you have errors which you want to ignore add an `armvalconfig.json` with the following structure in the directory:
 
 ```
 {
@@ -36,7 +36,7 @@ If you have errors which you don't want to ignore add an `armvalconfig.json` wit
 
 ## Sample output
 
-The tool with highlight JSON Language, ARM syntax and schema issues. The output is as follows:
+The tool will highlight JSON Language, ARM syntax and schema issues. The output is as follows:
 
 ```
 Using default glob '**/*azuredeploy*.json' as none provided
