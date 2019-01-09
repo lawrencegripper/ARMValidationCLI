@@ -52,7 +52,7 @@ function buildSymbolPathForLine(line: number, path: string, symbol: DocumentSymb
 export function loadIgnores(pathToConfig?: string): Array<IgnoreRule> {
     try {
         if (pathToConfig == null) {
-            pathToConfig = "./armvalidation.json"
+            pathToConfig = "./armvalconfig.json"
         }
         var content = readFileSync(pathToConfig)
         return JSON.parse(content.toString()).ignore
@@ -209,19 +209,22 @@ async function run() {
 
     let allIssues = new Array<Issue>()
 
+    
     console.log("-----------------------------")
     for (let f of files) {
         console.log(`\n --> Checking file ${f} \n`)
         let issues = await getErrorsForFile(f, ignoreRules)
         allIssues.push(...issues)
         console.log(`Found ${issues.length} issues \n`)
-
+        
         for (let i of issues) {
             printIssue(i)
             console.log("\n")
         }
         console.log("-----------------------------")
     }
+    
+    console.log(`Summary: Found ${allIssues.length} issues in ${files.length} files.`)
 
     if (allIssues.length > 0) {
         console.error("Failed with issues. Exit 1")

@@ -3,6 +3,9 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
+variables:
+  patch: $[counter('versioncounter', 100)]
+
 trigger:
 - master
 
@@ -28,6 +31,8 @@ steps:
     npm install -g bundle-deps
     bundle-deps .
   displayName: 'Bundle npm dependencies into package'
+
+- script: npm version 1.0.$(patch)
 
 - task: Npm@1
   inputs:
