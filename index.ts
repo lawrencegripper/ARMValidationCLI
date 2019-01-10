@@ -3,11 +3,12 @@
 import { DeploymentTemplate } from "./vscode-azurearmtools/src/DeploymentTemplate"
 import { readFileSync } from "fs";
 import * as http from "http";
-import { getLanguageService, JSONDocument } from "vscode-json-languageservice"
+import { getLanguageService, JSONDocument } from "vscode-json-languageservice";
 import { TextDocument, Location, Position, DocumentSymbol } from 'vscode-languageserver-types';
 import { xhr, XHRResponse, configure as configureHttpRequests, getErrorStatusDescription } from 'request-light';
 import * as glob from "glob";
 import { exit } from "process";
+import chalk, {Chalk} from 'chalk';
 
 // Added to prevent AppInsights code in vscode-azurearmtools creating build errors
 declare module "http" {
@@ -73,7 +74,7 @@ function checkRules(rules: Array<IgnoreRule>, jsonPath: string, message: string)
         let isMessageRegexMatch = message.match(rule.message)
 
         if (isJsonPathRegexMatch && isMessageRegexMatch) {
-            console.log(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'`)
+            console.log(chalk.blue(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'`))
             return true
         }
     }
@@ -100,6 +101,9 @@ function shouldSkip(jsonPath: string, message: string, fileLocation: string, ign
 }
 
 let service = getLanguageService({ schemaRequestService: schemaRequestService })
+const ErrorType = "Error";
+const WarningType = "Warning";
+
 
 export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array<IgnoreRule>): Promise<Array<Issue>> {
     var content = readFileSync(fileLocation)
@@ -129,12 +133,11 @@ export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array
     docSymbols.name = ""
 
     results.forEach(e => {
-        let type = e.severity === 1 ? "Error" : "Warning"
+        let type = e.severity === 1 ? ErrorType : WarningType
         let startPosition = Location.create(fileLocation, e.range).range.start
         var path = buildSymbolPathForLine(startPosition.line, "", docSymbols)
 
         if (shouldSkip(path, e.message, fileLocation, ignoreRules)) {
-            console.log("Skipping issue due to ignoreRule")
             return
         }
 
@@ -157,14 +160,13 @@ export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array
         var path = buildSymbolPathForLine(position.line, "", docSymbols)
 
         if (shouldSkip(path, e.message, fileLocation, ignoreRules)) {
-            console.log("Skipping issue due to ignoreRule")
             return
         }
 
         combinedIssues.push({
             message: e.message,
             position: position,
-            type: "Error",
+            type: ErrorType,
             source: "VSCodeARMValidation",
             file: fileLocation,
             jsonPath: path
@@ -176,13 +178,12 @@ export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array
         let position = document.positionAt(w.span.startIndex)
         var path = buildSymbolPathForLine(position.line, "", docSymbols)
         if (shouldSkip(path, w.message, fileLocation, ignoreRules)) {
-            console.log("Skipping issue due to ignoreRule")
             return
         }
         combinedIssues.push({
             message: w.message,
             position: position,
-            type: "Warning",
+            type: WarningType,
             source: "VSCodeARMValidation",
             file: fileLocation,
             jsonPath: path
@@ -252,8 +253,10 @@ async function run() {
     console.log(`Summary: Found ${allIssues.length} issues in ${files.length} files.`)
 
     if (allIssues.length > 0) {
-        console.error("Failed with issues. Exit 1")
+        console.error(chalk.red("Failed with issues. Exit 1"))
         exit(1)
+    } else {
+        console.log(chalk.green("Passed ✓"))
     }
 }
 
@@ -278,5 +281,11 @@ interface IgnoreRule {
 }
 
 function printIssue(i: Issue) {
-    console.log(`Error: ${i.message} \n Location: { line: ${i.position.line + 1} char: ${i.position.character + 1} } \n Type: ${i.type} \n From: ${i.source} \n File: ${i.file} \n JsonPath: ${i.jsonPath}`)
+
+    const message = `Error: ${i.message} \n Location: { line: ${i.position.line + 1} char: ${i.position.character + 1} } \n Type: ${i.type} \n From: ${i.source} \n File: ${i.file} \n JsonPath: ${i.jsonPath}`;
+    if (i.type === ErrorType) {
+        console.log(chalk.red(message))
+    } else {
+        console.log(chalk.yellow(message))
+    }
 }
