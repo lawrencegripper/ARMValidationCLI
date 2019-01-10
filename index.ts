@@ -73,6 +73,7 @@ function checkRules(rules: Array<IgnoreRule>, jsonPath: string, message: string)
         let isMessageRegexMatch = message.match(rule.message)
 
         if (isJsonPathRegexMatch && isMessageRegexMatch) {
+            console.log(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'`)
             return true
         }
     }
@@ -84,7 +85,11 @@ function shouldSkip(jsonPath: string, message: string, fileLocation: string, ign
         // Check specific file rules
         let fileIgnores = ignoreRules[fileLocation] as Array<IgnoreRule>
         if (fileIgnores) {
-            return checkRules(fileIgnores, jsonPath, message)
+            // If we got a match then return, if not fall through to the global rules
+            let shouldSkip = checkRules(fileIgnores, jsonPath, message)
+            if (shouldSkip) {
+                return true
+            }
         }
 
         let globalIgnores = ignoreRules["global"] as Array<IgnoreRule>
@@ -269,6 +274,7 @@ interface Issue {
 interface IgnoreRule {
     message: string
     jsonPath: string
+    reason?: string
 }
 
 function printIssue(i: Issue) {

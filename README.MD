@@ -26,7 +26,8 @@ If you have errors which you want to ignore add an `armvalconfig.json` with the 
         "global": [ // These issues are skipped in all files
             {
                 "message": "Unrecognized function name 'nonfunction'.",
-                "jsonPath": "resources.1.dependsOn.1"
+                "jsonPath": "resources.1.dependsOn.1",
+                "reason": "optional reason for the ignore"
             }
         ],
         "test/testdata/azuredeploy.arm.repeatederror.json": [ // The path of the file 

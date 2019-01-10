@@ -36,6 +36,12 @@ describe('Ignore rules test', () => {
                     "message": "Unrecognized function name 'nonfunction'.",
                     "jsonPath": "resources.1.dependsOn.1"
                 }
+            ],
+            "test/testdata/azuredeploy.arm.1error.json": [
+                {
+                    "message": "SomethingElse.",
+                    "jsonPath": "resources.1.dependsOn.1"
+                }
             ]
         }`)
 
@@ -49,12 +55,12 @@ describe('Ignore rules test', () => {
             "test/testdata/azuredeploy.arm.repeatederror.json": [
                 {
                     "message": "Unrecognized function name 'nonfunction'.",
-                    "jsonPath": ".*"
+                    "jsonPath": ".*",
+                    "reason": "something"
                 }
             ]
         }`)
         const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules)
-        console.log("Issues:", s)
         expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
 
