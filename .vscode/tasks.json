@@ -9,7 +9,15 @@
             "problemMatcher": [
                 "$tsc"
             ],
-            "label": "build"
+            "label": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
         }
     ]
 }

@@ -13,7 +13,18 @@
                 "${workspaceFolder}/**/*.js"
             ],
             "args": [
-                "**/*azuredeploy*.json"
+                "**/*azuredeploy.arm.repeatederror.json",
+                ""
+            ],
+            "preLaunchTask": "build"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug tests: Ignorerules",
+            "program": "${workspaceFolder}/test/ignoreRules.js",
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
             ],
             "preLaunchTask": "build"
         }

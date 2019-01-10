@@ -20,19 +20,36 @@ You can specify a custom [glob](https://en.wikipedia.org/wiki/Glob_%28programmin
 
 If you have errors which you want to ignore add an `armvalconfig.json` with the following structure in the directory:
 
-```
+```json
 {
     "ignore": {
-        "test/testdata/azuredeploy.arm.1error.json": [
+        "global": [ // These issues are skipped in all files
             {
                 "message": "Unrecognized function name 'nonfunction'.",
                 "jsonPath": "resources.1.dependsOn.1"
             }
+        ],
+        "test/testdata/azuredeploy.arm.repeatederror.json": [ // The path of the file 
+            {
+                "message": "Unrecognized function name 'nonfunction'.", // The message to skip. (This accepts a regex)
+                "jsonPath": "resources.1.dependsOn.1" // The JSONPath to the location of the error. (This accepts a regex)
+            },
+            {   // Using the Regex this will skip this error  
+                // in any children/properties of `resources.1`
+                "message": "Unrecognized function name 'nonfunction'.",
+                "jsonPath": "resources.1.*" 
+            },
+            {
+                "message": ".*", // This would skip everthing 
+                "jsonPath": ".*" // in this file
+            }
         ]
     }
 }
-
 ```
+
+>Note: Why the complicated ignore process? As JSON doesn't allow comments the standard `//ignorethis` style isn't doable and I didn't want to rely on linenumbers as file changes would 
+mean edits to the ignore file.
 
 ## Sample output
 

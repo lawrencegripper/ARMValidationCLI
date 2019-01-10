@@ -62,14 +62,34 @@ export function loadIgnores(pathToConfig?: string): Array<IgnoreRule> {
     }
 }
 
+function checkRules(rules: Array<IgnoreRule>, jsonPath: string, message: string): boolean {
+    for (let rule of rules) {
+        // Handle simple ignores - direct match
+        if (rule.jsonPath == jsonPath && rule.message == message) {
+            return true
+        }
+
+        let isJsonPathRegexMatch = jsonPath.match(rule.jsonPath)
+        let isMessageRegexMatch = message.match(rule.message)
+
+        if (isJsonPathRegexMatch && isMessageRegexMatch) {
+            return true
+        }
+    }
+
+}
+
 function shouldSkip(jsonPath: string, message: string, fileLocation: string, ignoreRules: Array<IgnoreRule>): boolean {
     if (ignoreRules) {
+        // Check specific file rules
         let fileIgnores = ignoreRules[fileLocation] as Array<IgnoreRule>
         if (fileIgnores) {
-            let ignore = fileIgnores.find(v => jsonPath == v.jsonPath && message == v.message)
-            if (ignore) {
-                return true
-            }
+            return checkRules(fileIgnores, jsonPath, message)
+        }
+
+        let globalIgnores = ignoreRules["global"] as Array<IgnoreRule>
+        if (globalIgnores) {
+            return checkRules(globalIgnores, jsonPath, message)
         }
     }
 }
