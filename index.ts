@@ -74,7 +74,7 @@ function checkRules(rules: Array<IgnoreRule>, jsonPath: string, message: string)
         let isMessageRegexMatch = message.match(rule.message)
 
         if (isJsonPathRegexMatch && isMessageRegexMatch) {
-            console.log(chalk.blue(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'`))
+            console.log(chalk.grey(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'\n`))
             return true
         }
     }
