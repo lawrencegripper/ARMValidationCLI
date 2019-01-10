@@ -1,18 +1,18 @@
-import { getErrorsForFile, loadIgnores } from "../index"
+/* tslint:disable:mocha-no-side-effect-code */
+
 import { expect } from 'chai';
-import { doesNotReject } from "assert";
-import { log } from "util";
+import { getErrorsForFile, loadIgnores } from "../index";
 const timeoutValue = 10000;
 
 describe('Ignore rules test', () => {
     it('finds error in file when ignore not configured', async () => {
-        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json")
+        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json");
         expect(s.length).to.equal(1);
     }).timeout(timeoutValue);
 
     it('load ignore rules returns correct rules', async () => {
-        const ignoreRules = loadIgnores("test/testdata/arm.ignorefuncerror.json")
-        expect(ignoreRules["test/testdata/azuredeploy.arm.1error.json"].length).to.equal(1, "Missing ignore rule")
+        const ignoreRules = loadIgnores("test/testdata/arm.ignorefuncerror.json");
+        expect(ignoreRules["test/testdata/azuredeploy.arm.1error.json"].length).to.equal(1, "Missing ignore rule");
     }).timeout(timeoutValue);
 
     it('skips error when ignore configured', async () => {
@@ -23,9 +23,9 @@ describe('Ignore rules test', () => {
                     "jsonPath": "resources.1.dependsOn.1"
                 }
             ]
-        }`)
+        }`);
 
-        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json", ignoreRules)
+        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json", ignoreRules);
         expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
 
@@ -43,12 +43,11 @@ describe('Ignore rules test', () => {
                     "jsonPath": "resources.1.dependsOn.1"
                 }
             ]
-        }`)
+        }`);
 
-        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json", ignoreRules)
+        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json", ignoreRules);
         expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
-
 
     it('when wildcard json path set ignores all occurances of the error', async () => {
         let ignoreRules = JSON.parse(`{
@@ -59,8 +58,8 @@ describe('Ignore rules test', () => {
                     "reason": "something"
                 }
             ]
-        }`)
-        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules)
+        }`);
+        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules);
         expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
 
@@ -72,11 +71,10 @@ describe('Ignore rules test', () => {
                     "jsonPath": "resources.1.properties.containers.*"
                 }
             ]
-        }`)
-        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules)
+        }`);
+        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules);
         expect(s.length).to.equal(1);
     }).timeout(timeoutValue);
-
 
     it('when wildcard set for error message ignore all errors under jsonpath', async () => {
         let ignoreRules = JSON.parse(`{
@@ -86,8 +84,8 @@ describe('Ignore rules test', () => {
                     "jsonPath": "resources.1.*"
                 }
             ]
-        }`)
-        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules)
+        }`);
+        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules);
         expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
 
@@ -99,8 +97,8 @@ describe('Ignore rules test', () => {
                     "jsonPath": ".*"
                 }
             ]
-        }`)
-        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules)
+        }`);
+        const s = await getErrorsForFile("test/testdata/azuredeploy.arm.repeatederror.json", ignoreRules);
         expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
 

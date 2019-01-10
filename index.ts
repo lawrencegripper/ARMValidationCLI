@@ -1,291 +1,291 @@
 #!/usr/bin/env node
 
-import { DeploymentTemplate } from "./vscode-azurearmtools/src/DeploymentTemplate"
-import { readFileSync } from "fs";
-import * as http from "http";
-import { getLanguageService, JSONDocument } from "vscode-json-languageservice";
-import { TextDocument, Location, Position, DocumentSymbol } from 'vscode-languageserver-types';
-import { xhr, XHRResponse, configure as configureHttpRequests, getErrorStatusDescription } from 'request-light';
-import * as glob from "glob";
-import { exit } from "process";
+/* tslint:disable:no-console */
+
 import chalk, {Chalk} from 'chalk';
+import { readFileSync } from "fs";
+import * as glob from "glob";
+import * as http from "http";
+import { exit } from "process";
+import { configure as configureHttpRequests, getErrorStatusDescription, xhr, XHRResponse } from 'request-light';
+import { getLanguageService, JSONDocument } from "vscode-json-languageservice";
+import { DocumentSymbol, Location, Position, TextDocument } from 'vscode-languageserver-types';
+import { DeploymentTemplate } from "./vscode-azurearmtools/src/DeploymentTemplate";
 
 // Added to prevent AppInsights code in vscode-azurearmtools creating build errors
 declare module "http" {
-    export class ServerRequest extends http.IncomingMessage { }
+    export class ServerRequest extends IncomingMessage { }
 }
 
 // Define how json schemas should be fetched
-const schemaRequestService = (uri: string): Thenable<string> => {
+const schemaRequestService = (uri: string): Thenable<string> => { //tslint:disable-line
 
     const headers = { 'Accept-Encoding': 'gzip, deflate' };
-    return xhr({ url: uri, followRedirects: 5, headers }).then(response => {
+    return xhr({ url: uri, followRedirects: 5, headers }).then(
+        response => {
         return response.responseText;
-    }, (error: XHRResponse) => {
-        return Promise.reject(error.responseText || getErrorStatusDescription(error.status) || error.toString());
-    });
+        },
+        async (error: XHRResponse) => {
+         return Promise.reject(error.responseText || getErrorStatusDescription(error.status) || error.toString());
+     });
 };
 
 function symbolContainsLine(s: DocumentSymbol, line: number) {
-    return s.range.start.line <= line && s.range.end.line >= line
+    return s.range.start.line <= line && s.range.end.line >= line;
 }
 
-function buildSymbolPathForLine(line: number, path: string, symbol: DocumentSymbol): string {
+function buildSymbolPathForLine(line: number, path: string, docSymbol: DocumentSymbol): string {
 
     // Build up json path
-    path = path + "." + symbol.name
+    path = `${path}.${docSymbol.name}`;
 
     // If this symbol doesn't have children and the line is in it then BINGO!
-    if (symbol.children == null || symbol.children.length == 0) {
-        return path.substr(2)
+    if (docSymbol.children == null || docSymbol.children.length === 0) {
+        return path.substr(2);
     }
 
     // If not lets look at its children
-    for (let s of symbol.children) {
+    for (let s of docSymbol.children) {
         if (symbolContainsLine(s, line)) {
-            return buildSymbolPathForLine(line, path, s)
+            return buildSymbolPathForLine(line, path, s);
         }
     }
 
-    return path.substr(2)
+    return path.substr(2);
 }
 
-export function loadIgnores(pathToConfig?: string): Array<IgnoreRule> {
+export function loadIgnores(pathToConfig?: string): IgnoreRule[] {
     try {
         if (pathToConfig == null) {
-            pathToConfig = "./armvalconfig.json"
+            pathToConfig = "./armvalconfig.json";
         }
-        var content = readFileSync(pathToConfig)
-        return JSON.parse(content.toString()).ignore
+        let content = readFileSync(pathToConfig);
+        return JSON.parse(content.toString()).ignore;
     } catch (e) {
-        console.error("Failed to load ignore file:" + e)
-        return null
+        console.error(`Failed to load ignore file: ${e}`);
+        return null;
     }
 }
 
-function checkRules(rules: Array<IgnoreRule>, jsonPath: string, message: string): boolean {
+function checkRules(rules: IgnoreRule[], jsonPath: string, message: string): boolean {
     for (let rule of rules) {
         // Handle simple ignores - direct match
-        if (rule.jsonPath == jsonPath && rule.message == message) {
-            return true
+        if (rule.jsonPath === jsonPath && rule.message === message) {
+            return true;
         }
 
-        let isJsonPathRegexMatch = jsonPath.match(rule.jsonPath)
-        let isMessageRegexMatch = message.match(rule.message)
+        let isJsonPathRegexMatch = jsonPath.match(rule.jsonPath);
+        let isMessageRegexMatch = message.match(rule.message);
 
         if (isJsonPathRegexMatch && isMessageRegexMatch) {
-            console.log(chalk.grey(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'\n`))
-            return true
+            console.log(chalk.grey(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'\n`));
+            return true;
         }
     }
 
 }
 
-function shouldSkip(jsonPath: string, message: string, fileLocation: string, ignoreRules: Array<IgnoreRule>): boolean {
+function shouldSkip(jsonPath: string, message: string, fileLocation: string, ignoreRules: IgnoreRule[]): boolean {
     if (ignoreRules) {
         // Check specific file rules
-        let fileIgnores = ignoreRules[fileLocation] as Array<IgnoreRule>
+        let fileIgnores = ignoreRules[fileLocation] as IgnoreRule[];
         if (fileIgnores) {
             // If we got a match then return, if not fall through to the global rules
-            let shouldSkip = checkRules(fileIgnores, jsonPath, message)
-            if (shouldSkip) {
-                return true
+            let skip = checkRules(fileIgnores, jsonPath, message);
+            if (skip) {
+                return true;
             }
         }
 
-        let globalIgnores = ignoreRules["global"] as Array<IgnoreRule>
+        let globalIgnores = ignoreRules["global"] as IgnoreRule[]; // tslint:disable-line
         if (globalIgnores) {
-            return checkRules(globalIgnores, jsonPath, message)
+            return checkRules(globalIgnores, jsonPath, message);
         }
     }
 }
 
-let service = getLanguageService({ schemaRequestService: schemaRequestService })
+let service = getLanguageService({ schemaRequestService: schemaRequestService });
 const ErrorType = "Error";
 const WarningType = "Warning";
 
+export async function getErrorsForFile(fileLocation: string, ignoreRules?: IgnoreRule[]): Promise<Issue[]> {
+    let content = readFileSync(fileLocation);
 
-export async function getErrorsForFile(fileLocation: string, ignoreRules?: Array<IgnoreRule>): Promise<Array<Issue>> {
-    var content = readFileSync(fileLocation)
-
-    let combinedIssues = new Array<Issue>()
-    var template = new DeploymentTemplate(content.toString(), fileLocation)
+    let combinedIssues: Issue[] = [];
+    let template = new DeploymentTemplate(content.toString(), fileLocation);
 
     if (!template.hasValidSchemaUri()) {
         combinedIssues.push({
             message: "JSON Document may not be an ARM template, it's missing the '$schema' field of the value in invalid",
             position: { character: 0, line: 0 },
-            type: "Error",
+            issueSeverity: "Error",
             source: "SchemaValidation",
             file: fileLocation
-        })
-        return combinedIssues
+        });
+        return combinedIssues;
     }
 
     //Use the VSCode JSON language server to validate the schema
-
-    let document = toDocument(content.toString())
-    let jsonDoc = await service.parseJSONDocument(document)
-    let results = await service.doValidation(document, jsonDoc)
-    let symbols = service.findDocumentSymbols2(document, jsonDoc)
-    let docSymbols = new DocumentSymbol()
-    docSymbols.children = symbols
-    docSymbols.name = ""
+    let document = toDocument(content.toString());
+    let jsonDoc = service.parseJSONDocument(document);
+    let results = await service.doValidation(document, jsonDoc);
+    let symbols = service.findDocumentSymbols2(document, jsonDoc);
+    let docSymbols = new DocumentSymbol();
+    docSymbols.children = symbols;
+    docSymbols.name = "";
 
     results.forEach(e => {
-        let type = e.severity === 1 ? ErrorType : WarningType
-        let startPosition = Location.create(fileLocation, e.range).range.start
-        var path = buildSymbolPathForLine(startPosition.line, "", docSymbols)
+        let issueType = e.severity === 1 ? ErrorType : WarningType;
+        let startPosition = Location.create(fileLocation, e.range).range.start;
+        let path = buildSymbolPathForLine(startPosition.line, "", docSymbols);
 
         if (shouldSkip(path, e.message, fileLocation, ignoreRules)) {
-            return
+            return;
         }
 
         combinedIssues.push({
             message: e.message,
             position: startPosition,
-            type: type,
+            issueSeverity: issueType,
             source: "VSCodeJSONLanguageServer",
             file: fileLocation,
             jsonPath: path
-        })
+        });
 
-    })
+    });
 
     // Use the VSCode ARM extension to validate the ARM template syntax
-    var errors = await template.errors
+    let errors = await template.errors;
 
     errors.forEach(e => {
-        let position = document.positionAt(e.span.startIndex)
-        var path = buildSymbolPathForLine(position.line, "", docSymbols)
+        let position = document.positionAt(e.span.startIndex);
+        let path = buildSymbolPathForLine(position.line, "", docSymbols);
 
         if (shouldSkip(path, e.message, fileLocation, ignoreRules)) {
-            return
+            return;
         }
 
         combinedIssues.push({
             message: e.message,
             position: position,
-            type: ErrorType,
+            issueSeverity: ErrorType,
             source: "VSCodeARMValidation",
             file: fileLocation,
             jsonPath: path
-        })
+        });
     });
 
-    var warnings = await template.warnings
+    let warnings = template.warnings;
     warnings.forEach(w => {
-        let position = document.positionAt(w.span.startIndex)
-        var path = buildSymbolPathForLine(position.line, "", docSymbols)
+        let position = document.positionAt(w.span.startIndex);
+        let path = buildSymbolPathForLine(position.line, "", docSymbols);
         if (shouldSkip(path, w.message, fileLocation, ignoreRules)) {
-            return
+            return;
         }
         combinedIssues.push({
             message: w.message,
             position: position,
-            type: WarningType,
+            issueSeverity: WarningType,
             source: "VSCodeARMValidation",
             file: fileLocation,
             jsonPath: path
-        })
-    })
+        });
+    });
 
-    return combinedIssues
+    return combinedIssues;
 }
 
 function toDocument(text: string): TextDocument {
     return TextDocument.create('foo://bar/file.json', 'json', 0, text);
 }
 
-async function getFiles(globString: string): Promise<Array<string>> {
-    return new Promise<Array<string>>((resolve, reject) => {
-        glob(globString, {}, function (er, files) {
+async function getFiles(globString: string): Promise<string[]> {
+    return new Promise<string[]>((resolve, reject) => {
+        glob(globString, {}, (er, files) => {
             if (er !== null) {
-                reject(er)
-                return
+                reject(er);
+                return;
             }
 
             if (files === null) {
-                reject("No files found")
-                return
+                reject("No files found");
+                return;
             }
 
-            console.log("-----------------------------")
-            console.log(`Files to be checked based on Glob '${globString}'`)
-            console.log(files)
+            console.log("-----------------------------");
+            console.log(`Files to be checked based on Glob '${globString}'`);
+            console.log(files);
 
             if (files.length === 1) {
-                console.log("Expecting more files? Check your glob isn't being expanded by your terminal. To fix put quotes around the input like this: \"**/*azuredeploy*.json\"")
+                console.log("Expecting more files? Check your glob isn't being expanded by your terminal. To fix put quotes around the input like this: \"**/*azuredeploy*.json\"");
             }
 
-            resolve(files)
-        })
-    })
+            resolve(files);
+        });
+    });
 }
 
-
 async function run() {
-    let ignoreRules = loadIgnores()
-    let fileGlob = process.argv[2]
+    let ignoreRules = loadIgnores();
+    let fileGlob = process.argv[2];
     if (fileGlob === undefined) {
-        console.log("Using default glob '**/azuredeploy.json' as none provided")
-        fileGlob = '**/*azuredeploy*.json'
+        console.log("Using default glob '**/azuredeploy.json' as none provided");
+        fileGlob = '**/*azuredeploy*.json';
     }
-    let files = await getFiles(fileGlob)
+    let files = await getFiles(fileGlob);
 
-    let allIssues = new Array<Issue>()
+    let allIssues: Issue[] = [];
 
-    
-    console.log("-----------------------------")
+    console.log("-----------------------------");
     for (let f of files) {
-        console.log(`\n --> Checking file ${f} \n`)
-        let issues = await getErrorsForFile(f, ignoreRules)
-        allIssues.push(...issues)
-        console.log(`Found ${issues.length} issues \n`)
-        
+        console.log(`\n --> Checking file ${f} \n`);
+        let issues = await getErrorsForFile(f, ignoreRules);
+        allIssues.push(...issues);
+        console.log(`Found ${issues.length} issues \n`);
+
         for (let i of issues) {
-            printIssue(i)
-            console.log("\n")
+            printIssue(i);
+            console.log("\n");
         }
-        console.log("-----------------------------")
+        console.log("-----------------------------");
     }
 
-    console.log(`Summary: Found ${allIssues.length} issues in ${files.length} files.`)
+    console.log(`Summary: Found ${allIssues.length} issues in ${files.length} files.`);
 
     if (allIssues.length > 0) {
-        console.error(chalk.red("Failed with issues. Exit 1"))
-        exit(1)
+        console.error(chalk.red("Failed with issues. Exit 1"));
+        exit(1);
     } else {
-        console.log(chalk.green("Passed ✓"))
+        console.log(chalk.green("Passed ✓"));
     }
 }
 
 run().catch(e => {
-    console.error(e)
-    exit(1)
-})
+    console.error(e);
+    exit(1);
+});
 
 interface Issue {
-    message: string
-    position: Position
-    type: string
-    source: string
-    file: string
-    jsonPath?: string
+    message: string;
+    position: Position;
+    issueSeverity: string;
+    source: string;
+    file: string;
+    jsonPath?: string;
 }
 
 interface IgnoreRule {
-    message: string
-    jsonPath: string
-    reason?: string
+    message: string;
+    jsonPath: string;
+    reason?: string;
 }
 
 function printIssue(i: Issue) {
 
-    const message = `Error: ${i.message} \n Location: { line: ${i.position.line + 1} char: ${i.position.character + 1} } \n Type: ${i.type} \n From: ${i.source} \n File: ${i.file} \n JsonPath: ${i.jsonPath}`;
-    if (i.type === ErrorType) {
-        console.log(chalk.red(message))
+    const message = `Error: ${i.message} \n Location: { line: ${i.position.line + 1} char: ${i.position.character + 1} } \n Type: ${i.issueSeverity} \n From: ${i.source} \n File: ${i.file} \n JsonPath: ${i.jsonPath}`;
+    if (i.issueSeverity === ErrorType) {
+        console.log(chalk.red(message));
     } else {
-        console.log(chalk.yellow(message))
+        console.log(chalk.yellow(message));
     }
 }
