@@ -1,5 +1,5 @@
-import { run } from "./armval";
 import { exit } from "process";
+import { run } from "./armval";
 
 run().catch(e => {
     console.error(e);
