@@ -33,20 +33,21 @@ function symbolContainsLine(s: DocumentSymbol, line: number) {
     return s.range.start.line <= line && s.range.end.line >= line;
 }
 
+// This method is used to find the resource in which the error
+// occured and build out the `jsonPath` information
 // tslint:disable-next-line:no-any
-let lastResourceSeen: any = null;
-// tslint:disable-next-line:no-any
-function buildSymbolPathForLine(line: number, path: string, docSymbol: DocumentSymbol, document: TextDocument): { path: string, resource: any } {
-    // Is it a resource?
+function buildSymbolInfoForLine(line: number, path: string, docSymbol: DocumentSymbol, document: TextDocument, resource?: any): { path: string, resource: any } {
+    // Is it a resource? If so we want it to enable `resoruce` based ignores.
+    //
     // The JSON language server returns type Module for {} objects in json
     // We can also check the path as we know it should be under resources
-    if (docSymbol.kind === SymbolKind.Module && path.includes(".resources")) {
+    if (resource == null && docSymbol.kind === SymbolKind.Module && path.includes(".resources")) {
         let jsSection = document.getText(docSymbol.range);
         // Not all failures will be in 'resource' objects. Deserialising all of them takes an age as lots fail
         // so we only attempt to deserialise them if there is a reasonable chance of success
         if (jsSection.includes("name") && jsSection.includes("apiVersion") && jsSection.includes("type")) {
             try {
-                lastResourceSeen = JSON.parse(jsSection);
+                resource = JSON.parse(jsSection);
             } catch (e) { console.log(`Failed to parse resource ${jsSection}`); }
         }
     }
@@ -56,18 +57,18 @@ function buildSymbolPathForLine(line: number, path: string, docSymbol: DocumentS
 
     // If this symbol doesn't have children and the line is in it then BINGO!
     if (docSymbol.children == null || docSymbol.children.length === 0) {
-        return { path: path.substr(2), resource: lastResourceSeen };
+        return { path: path.substr(2), resource: resource };
     }
 
     // If not lets look at its children
     for (let s of docSymbol.children) {
         if (symbolContainsLine(s, line)) {
             // Store the parent
-            return buildSymbolPathForLine(line, path, s, document);
+            return buildSymbolInfoForLine(line, path, s, document, resource);
         }
     }
 
-    return { path: path.substr(2), resource: lastResourceSeen };
+    return { path: path.substr(2), resource: resource };
 }
 
 export function loadIgnores(pathToConfig?: string): IgnoreRule[] {
@@ -83,10 +84,11 @@ export function loadIgnores(pathToConfig?: string): IgnoreRule[] {
     }
 }
 
+// Check to see if an issue has an IgnoreRule configured
 // tslint:disable-next-line:no-any
 function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, jsonDoc: any): boolean {
     for (let rule of rules) {
-        // Handle simple ignores - direct match
+        // Handle error cases
         if (rule.jsonPath != null && rule.resource != null) {
             throw new Error("Cannot specify both 'jsonPath' and 'resource' in an ignore rule");
         }
@@ -95,19 +97,22 @@ function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, json
             throw new Error("Must specify either 'jsonPath' and 'resource' in an ignore rule");
         }
 
+        // Check the message matches
         if (!message.match(rule.message)) {
             continue;
         }
 
+        // Check the resource block
         if (rule.resource != null) {
             if (rule.resource.name == null || rule.resource.apiVersion == null || rule.resource.type == null) {
                 throw new Error("In a `resource` rule ALL of `apiVersion`, `name` and `type` fields must be set to a regex");
             }
-            if (rule.resource.name.match(jsonDoc.name) && rule.resource.apiVersion.match(jsonDoc.apiVersion) && rule.resource.type.match(jsonDoc.type)) {
+            if (jsonDoc.name.match(rule.resource.name) && jsonDoc.apiVersion.match(rule.resource.apiVersion) && jsonDoc.type.match(rule.resource.type)) {
                 return true;
             }
         }
 
+        // Check the jsonPath block
         if (rule.jsonPath != null) {
             if (rule.jsonPath === jsonPath) {
                 return true;
@@ -144,8 +149,7 @@ function shouldSkip(jsonPath: string, message: string, fileLocation: string, ign
 }
 
 function createIssue(message: string, start: Position, fileLocation: string, docSymbols: DocumentSymbol, document: TextDocument, ignoreRules: IgnoreRule[]): Issue {
-    lastResourceSeen = null;
-    let pathResult = buildSymbolPathForLine(start.line, "", docSymbols, document);
+    let pathResult = buildSymbolInfoForLine(start.line, "", docSymbols, document);
 
     if (shouldSkip(pathResult.path, message, fileLocation, ignoreRules, pathResult.resource)) {
         return null;

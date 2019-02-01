@@ -24,4 +24,21 @@ describe('Ignore `resource` rules test', () => {
         expect(s.length).to.equal(0);
     }).timeout(timeoutValue);
 
+    it('ignore incorrect schema error using `resource` property in ignore file with wildcards', async () => {
+        let ignoreRules = JSON.parse(`{
+            "test/testdata/azuredeploy.schema.1error.json": [
+                {
+                    "message": ".*",
+                    "resource": {
+                        "name":".*",
+                        "apiVersion":".*",
+                        "type":"Microsoft.Storage/storageAccounts"
+                    }
+                }
+            ]
+        }`);
+        const s = await getErrorsForFile("test/testdata/azuredeploy.schema.1error.json", ignoreRules);
+        expect(s.length).to.equal(0);
+    }).timeout(timeoutValue);
+
 });
