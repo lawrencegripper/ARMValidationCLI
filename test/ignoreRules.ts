@@ -1,7 +1,8 @@
 /* tslint:disable:mocha-no-side-effect-code */
 
 import { expect } from 'chai';
-import { getErrorsForFile, loadIgnores } from "../index";
+import { getErrorsForFile, loadIgnores } from "../armval";
+import { fail } from 'assert';
 const timeoutValue = 10000;
 
 describe('Ignore rules test', () => {
@@ -27,6 +28,30 @@ describe('Ignore rules test', () => {
 
         const s = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json", ignoreRules);
         expect(s.length).to.equal(0);
+    }).timeout(timeoutValue);
+
+    it('error if both jsonPath and resource set in an ignore rule', async () => {
+        let ignoreRules = JSON.parse(`{
+            "test/testdata/azuredeploy.arm.1error.json": [
+                {
+                    "message": "Unrecognized function name 'nonfunction'.",
+                    "jsonPath": "resources.1.dependsOn.1",
+                    "resource": {
+                        "name": "bob"
+                    }
+                }
+            ]
+        }`);
+
+        // tslint:disable-next-line:no-unused-expression
+        try {
+            let x = await getErrorsForFile("test/testdata/azuredeploy.arm.1error.json", ignoreRules);
+        } catch (e) {
+            expect(e.message).to.equal(new Error("Cannot specify both 'jsonPath' and 'resource' in an ignore rule").message);
+            return;
+        }
+
+        fail("Expected error");
     }).timeout(timeoutValue);
 
     it('when global ignore configured it skips error', async () => {

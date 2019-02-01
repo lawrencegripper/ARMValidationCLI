@@ -1,7 +1,7 @@
 /* tslint:disable:mocha-no-side-effect-code */
 
 import { expect } from 'chai';
-import { getErrorsForFile } from "../index";
+import { getErrorsForFile } from "../armval";
 
 const timeoutValue = 10000;
 
