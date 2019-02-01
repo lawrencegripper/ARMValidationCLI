@@ -28,6 +28,25 @@ If you have errors which you want to ignore add an `armvalconfig.json` with the 
                 "message": "Unrecognized function name 'nonfunction'.",
                 "jsonPath": "resources.1.dependsOn.1",
                 "reason": "optional reason for the ignore"
+            },
+            {
+                "message": ".*",
+                "resource": { // You can match a resource by providing the values for `name`, `apiVersion` and `type`
+                    "name":".*",
+                    "apiVersion":".*",
+                    "type":"Microsoft.Storage/storageAccounts"
+                }
+            }
+        ],
+        "test/testdata/azuredeploy.schema.1error.json": [
+            {
+                "message": ".*",
+                "resource": {
+                    "name":"[variables('storageAccountName')]",
+                    "apiVersion":"2017-10-05",
+                    "type":"Microsoft.Storage/storageAccounts"
+                },
+                "reason": "Schema is out of data for this resource type" // You can provide reasons which show in the CLI when these rules trigger
             }
         ],
         "test/testdata/azuredeploy.arm.repeatederror.json": [ // The path of the file 
