@@ -108,6 +108,7 @@ function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, json
                 throw new Error("In a `resource` rule ALL of `apiVersion`, `name` and `type` fields must be set to a regex");
             }
             if (jsonDoc.name.match(rule.resource.name) && jsonDoc.apiVersion.match(rule.resource.apiVersion) && jsonDoc.type.match(rule.resource.type)) {
+                console.log(chalk.grey(`Skipped issue due to resource ignore rule reason: '${rule.reason}' location:'${JSON.stringify(rule.resource)}'\n`));
                 // Track that this rule was used
                 rule.used = true;
                 return true;
