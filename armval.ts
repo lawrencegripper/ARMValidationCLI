@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 /* tslint:disable:no-console */
+/* tslint:disable:no-any */
 
 import chalk from 'chalk';
 import { readFileSync } from "fs";
@@ -85,7 +86,7 @@ export function loadIgnores(pathToConfig?: string): IgnoreRule[] {
 }
 
 // Check to see if an issue has an IgnoreRule configured
-// tslint:disable-next-line:no-any
+// tslint:disable-next-line:cyclomatic-complexity
 function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, jsonDoc: any): boolean {
     for (let rule of rules) {
         // Handle error cases
@@ -106,6 +107,10 @@ function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, json
         if (rule.resource != null) {
             if (rule.resource.name == null || rule.resource.apiVersion == null || rule.resource.type == null) {
                 throw new Error("In a `resource` rule ALL of `apiVersion`, `name` and `type` fields must be set to a regex");
+            }
+            if (jsonDoc == null || jsonDoc.name == null || jsonDoc.apiVersion == null || jsonDoc.type == null){
+                console.warn(`Failed to file correct properties for resource ignore rule on: ${jsonDoc}`);
+                continue;
             }
             if (jsonDoc.name.match(rule.resource.name) && jsonDoc.apiVersion.match(rule.resource.apiVersion) && jsonDoc.type.match(rule.resource.type)) {
                 console.log(chalk.grey(`Skipped issue due to resource ignore rule reason: '${rule.reason}' location:'${JSON.stringify(rule.resource)}'\n`));
