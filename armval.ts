@@ -108,6 +108,8 @@ function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, json
                 throw new Error("In a `resource` rule ALL of `apiVersion`, `name` and `type` fields must be set to a regex");
             }
             if (jsonDoc.name.match(rule.resource.name) && jsonDoc.apiVersion.match(rule.resource.apiVersion) && jsonDoc.type.match(rule.resource.type)) {
+                // Track that this rule was used
+                rule.used = true;
                 return true;
             }
         }
@@ -120,12 +122,32 @@ function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, json
 
             if (jsonPath.match(rule.jsonPath)) {
                 console.log(chalk.grey(`Skipped issue due to ignore rule reason: '${rule.reason}' location:'${jsonPath}'\n`));
+                // Track that this rule was used
+                rule.used = true;
                 return true;
+
             }
         }
 
     }
 
+}
+
+// Report which of the ignore rules are unused
+// tslint:disable-next-line:no-any
+export function checkForUnusedIgnoreRules(ignores: any): boolean {
+    let hasUnusedIgnores = false;
+    // tslint:disable-next-line:no-for-in
+    for (let p of Object.keys(ignores)) {
+        let ignoreRules = ignores[p] as IgnoreRule[];
+        for (let r of ignoreRules) {
+            if (r.used !== true) {
+                console.log(`Unused rule in ignoreFile, consider cleaning up: ${JSON.stringify(r)}`);
+                hasUnusedIgnores = true;
+            }
+        }
+    }
+    return hasUnusedIgnores;
 }
 
 // tslint:disable-next-line:no-any
@@ -297,6 +319,8 @@ export async function run() {
 
     console.log(`Summary: Found ${allIssues.length} issues in ${files.length} files.`);
 
+    checkForUnusedIgnoreRules(ignoreRules);
+
     if (allIssues.length > 0) {
         console.error(chalk.red("Failed with issues. Exit 1"));
         exit(1);
@@ -326,6 +350,7 @@ interface IgnoreRule {
     jsonPath: string;
     resource: IgnoreType;
     reason?: string;
+    used?: boolean;
 }
 
 function printIssue(i: Issue) {
