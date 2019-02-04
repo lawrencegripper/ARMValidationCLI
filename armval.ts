@@ -123,6 +123,7 @@ function checkRules(rules: IgnoreRule[], jsonPath: string, message: string, json
         // Check the jsonPath block
         if (rule.jsonPath != null) {
             if (rule.jsonPath === jsonPath) {
+                rule.used = true;
                 return true;
             }
 
