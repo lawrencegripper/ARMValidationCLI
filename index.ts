@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { exit } from "process";
 import { run } from "./armval";
 
