@@ -41,7 +41,7 @@ function buildSymbolInfoForLine(line: number, path: string, docSymbol: DocumentS
     //
     // The JSON language server returns type Module for {} objects in json
     // We can also check the path as we know it should be under resources
-    if (resource == null && docSymbol.kind === SymbolKind.Module && path.includes(".resources")) {
+    if (docSymbol.kind === SymbolKind.Module && path.includes(".resources")) {
         let jsSection = document.getText(docSymbol.range);
         // Not all failures will be in 'resource' objects. Deserialising all of them takes an age as lots fail
         // so we only attempt to deserialise them if there is a reasonable chance of success

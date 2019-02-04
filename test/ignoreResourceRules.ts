@@ -107,4 +107,25 @@ describe('Ignore `resource` rules test', () => {
 
         fail("Expected error");
     }).timeout(timeoutValue);
+
+    it('ignore subresource with error', async () => {
+        let ignoreRules = JSON.parse(`{
+            "global": [
+                {
+                    "message": ".*",
+                    "resource": {
+                        "type": "providers/diagnosticSettings",
+                        "name": ".*",
+                        "apiVersion": "2017-05-01-preview"
+                    }
+                }
+            ]
+        }`);
+
+        let x = await getErrorsForFile("test/testdata/azuredeploy.schema.subreserror.json", ignoreRules);
+
+        // Only ignore the subresource error
+        expect(x.length).to.equal(1);
+
+    }).timeout(timeoutValue);
 });
