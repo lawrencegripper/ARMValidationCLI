@@ -1,8 +1,8 @@
 /* tslint:disable:mocha-no-side-effect-code */
 
+import { fail } from 'assert';
 import { expect } from 'chai';
 import { checkForUnusedIgnoreRules, getErrorsForFile } from "../armval";
-import { fail } from 'assert';
 
 const timeoutValue = 10000;
 
