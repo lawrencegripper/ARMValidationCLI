@@ -4,6 +4,8 @@
 
 ## About
 
+> Unmaintained for reference only.
+
 The aim is to create a simple CLI which can be run during CI to validate ARM templates and catch issues early. 
 
 ## Usage 
